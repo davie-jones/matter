@@ -1,0 +1,249 @@
+---
+title: "matter. "
+output: html_document
+---
+
+
+Building ecological equity by having the mind of an ***ecologist***, the care of a ***gardener*** and the skill of a ***doctor***.
+
+
+Matter is an all encompassing term for life. The highest utility of life is achieved with healthy symbiotic relationships. In a more tangible sense; we work with nature to create mutually beneficial outcomes that endure our time on this planet. We are developing an environment in which matter can thrive.
+
+### Principles
+
+🔄 **Close the loop:** All aspects of our farm are to give back and to not disturb the natural balance. All naturally occurring resources are to be utilized by our systems i.e. every drop of water is to be fully utilized by our water system, with little to no reliance on outside resources i.e. irrigating, fertilizing, etc
+
+📈 **Build a scalable model:** Decisions made on the farm will be a balance between what is best for the ecosystem and the bank balance. The goal is to build a model which can prove to conventional farms that a regenerative approach can still be financially viable.
+
+🖥️ **Develop a data rich environment:** Collect every data point we can. Data is only dawning on agriculture. We are currently in the collection phase. The process from here: use data to - channel operational energy effectively → make data driven decisions → predict/model optimal land uses and outcomes.
+
+🏗️ **Build healthy communities:** Healthy ecosystem + healthy animals + healthy people = healthy communities. 
+
+🛒 **Validate our impact/quality on the supply chain:** We need to set ourselves apart from the law of averages. Producing something we are proud of and validating the impact of doing so across the environment.
+
+♾️ **Poly over Mono:** Work towards a system that works in harmony. Bias to natural, native New Zealand solutions rather than synthetic. Design with companionship in mind.
+
+🧪 **Challenge the norm through experimentation:** Allocate at least 10% of our resources at any one time to trials that are furthering the industry and the people within it.
+
+
+```{r include = FALSE, message = FALSE, warning= FALSE}
+install.packages("plotly")
+
+library(tidyverse)
+library(plotly)
+library(readxl)
+library(lubridate)
+
+data <- read_excel("146 O'Leary Road - NIWA Weather.xlsx")
+
+pointblue.palette <- c('#4495d1', '#74b743', '#f7941d', '#005baa',
+                       '#bfd730', '#a7a9ac', '#666666')
+
+tk.palette <- c('#3b4035', '#9c8755', '#61655c',
+                '#d1bc8b', '#40696f', '#2e5150',
+                '#5f5131', '#9e513a')
+
+
+dat <- data %>%
+  select (Date, `Temp Max`, `Temp Min`, `Rain (mm)`) %>%
+    rename("high" = "Temp Max",
+            "low" = "Temp Min",
+            "rain" = "Rain (mm)") %>%
+    mutate(day = day(Date),
+           mo = month(Date),
+           year = year(Date)) %>%
+    mutate(date = Date) %>%
+    arrange(date) %>%
+    filter(date > '2000-01-01') %>%
+    gather(high:rain, key = var, value = observed) %>%
+    mutate(text = paste0('<b>', var, ':</b> ', value = observed)) %>%
+    arrange(date, var)
+    
+#use to create bands that are 2 sd from the mean
+    
+stats <- dat %>%
+  group_by(var, mo) %>%
+  mutate(mean = mean(observed, na.rm = T),
+         sd =  sd(observed, na.rm = T),
+         high = mean + 2*sd,
+         low = mean - 2*sd) %>%
+  ungroup()
+
+plot1 <- plot_ly(x = ~date) %>%
+  add_lines(data = stats %>% filter(var == 'low'), y = ~high,
+            line = list(color = 'transparent'),
+            hoverinfo = 'none') %>%
+  add_lines(data = stats %>% filter(var == 'low'), y = ~low,
+            line = list(color = 'transparent'),
+            fill = 'tonexty',
+            fillcolor = scales::alpha(pointblue.palette[2], alpha = 0.2),
+            hoverinfo = 'none', name = 'spline') %>%
+  add_lines(data = stats %>% filter(var == 'high'), y = ~high,
+            line = list(color = 'transparent'),
+            hoverinfo = 'none') %>%
+  add_lines(data = stats %>% filter(var == 'high'), y = ~low,
+            line = list(color = 'transparent'),
+            fill = 'tonexty',
+            fillcolor = scales::alpha(pointblue.palette[3], alpha = 0.2),
+            hoverinfo = 'none', name = 'spline') %>%
+  add_trace(data = dat %>% filter(var == 'high'), y = ~observed, 
+            type = 'scatter', mode = 'lines',
+            line = list(color = pointblue.palette[3]),
+            # marker = list(color = pointblue.palette[3]),
+            text = ~text,
+            hoverinfo = 'x+text') %>%
+  add_trace(data = dat %>% filter(var == 'low'), y = ~observed, 
+            type = 'scatter', mode = 'lines',
+            line = list(color = pointblue.palette[2]),
+            # marker = list(color = pointblue.palette[2]),
+            text = ~text,
+            hoverinfo = 'text') %>%
+  add_trace(data = dat %>% filter(var == 'rain'), y = ~observed, 
+            type = 'scatter', mode = 'lines',
+            line = list(color = pointblue.palette[1]),
+            # marker = list(color = pointblue.palette[1]),
+            text = ~text,
+            hoverinfo = 'text',
+            yaxis = 'y2') %>%
+  add_annotations(text = 'Precipitation (mm)', 
+                  textangle = 90,
+                  x = 1,
+                  y = 0.5,
+                  xshift = 50,
+                  xref = 'paper',
+                  yref = 'paper',
+                  yanchor = 'middle',
+                  font = list(family = 'sans-serif',
+                              size = 14),
+                  showarrow = FALSE,
+                  visible = TRUE) %>%
+  layout(yaxis = list(range = c(0, 35),
+                      title = 'Temperature (C)',
+                      gridcolor = 'white',
+                      font = list(family = 'sans-serif',
+                                  size = 14),
+                      automargin = TRUE),
+         yaxis2 = list(overlaying = 'y',
+                       side = 'right',
+                       range = c(0, 100),
+                       title = NA,
+                       gridcolor = 'white',
+                       font = list(family = 'sans-serif',
+                                   size = 14)),
+         xaxis = list(title = NA, 
+                      type = 'date',
+                      font = list(family = 'sans-serif',
+                                  size = 14),
+                      rangeselector = list(buttons = list(list(count = 3,
+                                                               label = "3 mo",
+                                                               step = "month",
+                                                               stepmode = "backward"),
+                                                          list(count = 6,
+                                                               label = "6 mo",
+                                                               step = "month",
+                                                               stepmode = "backward"),
+                                                          list(count = 12,
+                                                               label = "12 mo",
+                                                               step = "month",
+                                                               stepmode = "backward"),
+                                                          list(count = 1,
+                                                               label = "YTD",
+                                                               step = "year",
+                                                               stepmode = "todate"),
+                                                          list(count = 5,
+                                                               label = "5 y",
+                                                               step = "year",
+                                                               stepmode = "backward"),
+                                                          list(step = "all")),
+                                           font = list(family = 'sans-serif',
+                                                       size = 14,
+                                                       color = 'white'),
+                                           bgcolor = tk.palette[2],
+                                           activecolor = tk.palette[5])),
+         showlegend = FALSE,
+         hovermode = 'x',
+         dragmode = 'pan',
+         margin = list(r = 50, b = 10, t = 10)) %>%
+  rangeslider(max(as.numeric(dat$date))-365, max(dat$date), thickness = 0.05) %>%
+  config(displaylogo = FALSE, showTips = FALSE,
+         modeBarButtonsToRemove = list('zoom2d', 'select2d', 'lasso2d', 
+                                       'zoomIn2d', 'zoomOut2d', 
+                                       'pan2d', 'toggleSpikelines'))
+
+```
+
+```{r include= FALSE}
+install.packages("kableExtra")
+library(kableExtra)
+options(knitr.table.format = "html")
+```
+### Weather
+
+Daily `r text_spec("high temperature", color = "#f7941d")` `r text_spec("low tempreture", color = "#74b743")` and `r text_spec("rainfall", color = "#4495d1")` from the matter. weather station, along with the normal monthly range of temperatures observed since the weather station was established.
+
+
+```{r echo = FALSE, message = FALSE, warning= FALSE}
+plot1
+```
+
+
+```{r include = FALSE, message = FALSE, warning= FALSE}
+install.packages("leaflet")
+install.packages("readr")
+install.packages("ggmap")
+install.packages("readxl")
+install.packages("ggplot2")
+
+library(leaflet)
+library(sp)
+library(ggplot2)
+library(ggmap)
+library(readr)
+library(readxl)
+
+data <- read_excel("FarmData.xlsx")
+
+data$Long <- as.numeric(data$Long)
+data$Lat <- as.numeric(data$Lat)
+data$Ph <- as.character(data$Ph)
+data$`Olsen P` <- as.character(data$`Olsen P`)
+data$Ca <- as.character(data$Ca)
+data$Na <- as.character(data$Na)
+data$Sulphate <- as.character(data$Sulphate)
+data$K <- as.character(data$K)
+data$Mg <- as.character(data$Mg)
+data$Carbon <- as.character(data$Carbon)
+data$CEC <- as.character(data$CEC)
+
+data.SP <- SpatialPointsDataFrame(data[,c(2,3)], data[,-c(2,3)])
+
+providers$Esri.DeLorme
+
+m = leaflet() %>% 
+  addProviderTiles(providers$Esri.WorldImagery) %>%
+  addCircleMarkers(data = data, lng= ~Long, lat= ~Lat, popup= ~paste(Location,"<br>",
+                                                               "<b>Ph Level:</b>", Ph, sep=" ","<br>", 
+                                                               "<b>Olsen P:</b>", `Olsen P`, "<br>",
+                                                               "<b>Calcium:</b>", Ca, "<br>",
+                                                               "<b>Magnesium:</b>", Mg, "<br>",
+                                                               "<b>Potassium:</b>", K, "<br>",
+                                                               "<b>Sodium:</b>", Na, "<br>",
+                                                               "<b>Sulphate:</b>", Sulphate, "<br>",
+                                                               "<b>CEC:</b>", CEC, "<br>",
+                                                               "<b>Carbon:</b>", Carbon, "<br>"
+                                                               ))
+```
+
+### Soil
+
+Soil samples across 15 sites have been recorded since 2010. 
+
+In the map below, each point represents a soil sample location, with the associated soil information. Click on any of the survey points for details.
+
+Going forward, we will be measuring three indicators of soil productivity: organic carbon content at two depths (0-10cm and 10-40cm), surface soil bulk density, and water infiltration rates. These will produce an overall score combining all three indicators.
+
+```{r echo = FALSE, message = FALSE, warning= FALSE}
+m
+```
+
+
