@@ -28,7 +28,7 @@ data$Mg <- as.character(data$Mg)
 data$Carbon <- as.character(data$Carbon)
 data$CEC <- as.character(data$CEC)
 
-data.SP <- SpatialPointsDataFrame(data[,c(1,2)], data[,-c(1,2)])
+data.SP <- SpatialPointsDataFrame(data[,c(2,3)], data[,-c(2,3)])
 
 providers$Esri.DeLorme
 
